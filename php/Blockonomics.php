@@ -461,6 +461,12 @@ class Blockonomics
         exit();
     }
 
+    // Redirect the user to the woocommerce finish order page
+    public function show_menu_page(){
+        require_once('./templates/blockonomics_menu_page.php');
+        bitcoin_address_finder();
+    }
+
     // Fetch the correct crypto order linked to the order id
     public function get_order_by_id_and_crypto($orders, $order_id, $crypto){
         if(isset($orders[$order_id])){
@@ -494,7 +500,6 @@ class Blockonomics
         }
         
         $this->update_order($order);
-
         return $order;
     }
 

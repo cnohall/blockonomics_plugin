@@ -36,7 +36,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 */
-
+define( 'WP_DEBUG', true );
 if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
@@ -337,6 +337,7 @@ function blockonomics_woocommerce_init()
                     <input type="hidden" name="generateSecret" value="true">
                 </p>
             </form>
+
     </div>
 
     <?php
@@ -401,6 +402,44 @@ add_action('plugins_loaded', 'blockonomics_woocommerce_init', 0);
 register_activation_hook( __FILE__, 'blockonomics_activation_hook' );
 add_action('admin_notices', 'blockonomics_plugin_activation');
 
+// Add blockonomics sidemenu
+add_action('add_admin_menu', 'bitcoin_address_finder', 0);
+
+function bitcoin_address_finder(){
+    add_menu_page( 'Bitcoin Address Finder', 'Bitcoin Address Finder', 'manage_options', 'bitcoin-address-finder', 'find_woocommerce_order' );
+}
+
+function find_woocommerce_order(){
+    ?>
+    <h1>Find a Woocoomerce order based on bitcoin address</h1>
+    <form method='post' action=''>
+    Bitcoin address:<input type='name' name='address'>
+    <input type='submit' name='SubmitButton'>
+    </form>
+    <?php
+    $orders = get_option('blockonomics_orders');
+    if (isset($orders)) {
+        if(isset($_POST['SubmitButton'])){
+            $matches = 0;
+            $address = $_POST['address']; 
+            foreach ($orders as $order) {
+                // echo $order['address'];
+                foreach ($order as $details) {
+                    if ($details['address'] == $address){
+                        $matches = 1;
+                        echo "<a href='post.php?post=".$details['order_id']."&action=edit'>Order#: ".$details['order_id']."</a><br>";
+                    }
+                }
+            }
+            if ($matches == 0){
+                echo 'No orders matched';
+            }
+        } 
+    } else {
+        echo 'Could not get any orders';
+    }
+}
+
 function blockonomics_activation_hook() {
     if(!is_plugin_active('woocommerce/woocommerce.php'))
     {
@@ -408,6 +447,8 @@ function blockonomics_activation_hook() {
     }
     set_transient( 'blockonomics_activation_hook_transient', true, 5);
 }
+
+
 
 //Show message when plugin is activated
 function blockonomics_plugin_activation() {
@@ -460,47 +501,3 @@ function blockonomics_plugin_add_settings_link( $links ) {
 $plugin = plugin_basename( __FILE__ );
 add_filter( "plugin_action_links_$plugin", 'blockonomics_plugin_add_settings_link' );
 
-
-function bitcoin_address_finder(){
-    add_menu_page( 'Bitcoin Address Finder', 'Bitcoin Address Finder', 'manage_options', 'bitcoin-address-finder', 'use_effect' );
-}
-
-function use_effect(){
-    if(isset($contents)){
-        echo '<h1>'.$context.'<h1>';
-    }
-    ?>
-    <h1>Hello World arton!</h1>
-    <form method='post' action=''>
-    Bitcoin address:<input type='name' name='address'>
-    <input type='submit' name='SubmitButton'>
-    </form>
-    <?php
-    if(isset($_POST['SubmitButton'])){ //check if form was submitted
-        echo 'submitted ';
-        $address = $_POST['address']; //get input text
-        $content = '{"addr":"'.$address.'"}';
-        $api_key = get_option("blockonomics_api_key");
-        $url = 'https://www.blockonomics.co/api/searchhistory';
-
-        $options = array( 
-            'http' => array(
-                'header'  => 'Authorization: Bearer '.$api_key,
-                'method'  => 'POST',
-                'content' => $content,
-                'ignore_errors' => true
-            )   
-        );  
-
-
-        $context = stream_context_create($options);
-        $result = file_get_contents($url, false, $context);
-        if(isset($result)){
-            echo 'Results for '.$address.': '.$result.'<br/>';
-            echo 'Pending: '.$result->pending.'<br/>';
-            echo 'History: '.$result->history.'<br/>';
-        } else {
-            echo 'Result not done yet'.$content;
-        }
-    }    
-}
